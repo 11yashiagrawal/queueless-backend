@@ -34,7 +34,11 @@ const accountDetails = asyncHandler(async (req, res) => {
 })
 
 const account = asyncHandler(async (req, res) => {
-    const { statusCode, message } = await deleteAccountService(req.user?._id);
+    const { password } = req.body;
+    if (!password) {
+        throw new ApiError(400, "Password is required");
+    }
+    const { statusCode, message } = await deleteAccountService(req.user?._id, password);
 
     if (statusCode >= 400) {
         throw new ApiError(statusCode, message)

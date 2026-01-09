@@ -44,4 +44,4 @@ const serviceQueueSchema = new mongoose.Schema({
 
 serviceQueueSchema.index({ serviceId: 1, queueDate: 1 }, { unique: true });
 
-const ServiceQueue = mongoose.model("ServiceQueue", serviceQueueSchema);
+export const ServiceQueue = mongoose.model("ServiceQueue", serviceQueueSchema);

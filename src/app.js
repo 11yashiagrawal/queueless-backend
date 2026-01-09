@@ -36,4 +36,7 @@ app.use("/api/v1/auth", AuthRouter);
 import UserRouter from "./routes/user.routes.js";
 app.use("/api/v1/users", UserRouter);
 
+import BusinessRouter from "./routes/business.routes.js";
+app.use("/api/v1/businesses", BusinessRouter);
+
 export {app}

@@ -9,10 +9,10 @@ router.route("/password").post(verifyJWT, password)
 
 router.route("/accountDetails").patch(verifyJWT, accountDetails)
 
-router.route("/account").delete(verifyJWT, account)
+router.route("/").delete(verifyJWT, account)
 
 router.route("/identityProof").patch(verifyJWT, upload.single("identityProof"), identityProof)
 
-router.route("/user").get(verifyJWT, user)
+router.route("/").get(verifyJWT, user)
 
 export default router;

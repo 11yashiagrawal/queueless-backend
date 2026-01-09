@@ -23,12 +23,12 @@ const appointmentSchema = new mongoose.Schema({
         default: Date.now
     },
     slotStart: {
-        type: timestamps,
+        type: Date,
         required: true,
         default: Date.now
     },
     slotEnd: {
-        type: timestamps,
+        type: Date,
         required: true
     },
     status: {

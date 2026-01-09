@@ -1,5 +1,5 @@
-import {User} from "../models/user.models.js";
-import {uploadOnCloudinary} from "../utils/cloudinary.js";
+import { User } from "../models/user.models.js";
+import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import jwt from "jsonwebtoken";
 
 const generateTokens = async (user) => {
@@ -43,9 +43,12 @@ const signupService = async (name, email, phoneNo, password, identityProofLocalP
 };
 
 const loginService = async (email, phoneNo, password) => {
-    const user = await User.findOne({$or: [{email}, {phoneNo }] });
+    const user = await User.findOne({ $or: [{ email }, { phoneNo }] });
     if (!user) {
         return { statusCode: 400, message: "User not found" };
+    }
+    if (!user.isActive) {
+        return { statusCode: 401, message: "User account is inactive" };
     }
     const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
@@ -68,6 +71,9 @@ const refreshTokensService = async (incomingRefreshToken) => {
         const user = await User.findById(decoded?._id);
         if (!user) {
             return { statusCode: 401, message: "Invalid Refresh Token" };
+        }
+        if (!user.isActive) {
+            return { statusCode: 401, message: "User account is inactive" };
         }
         // console.log(incomingRefreshToken);
         // console.log(user?.refreshToken);
