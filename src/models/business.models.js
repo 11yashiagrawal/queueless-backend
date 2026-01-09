@@ -32,6 +32,10 @@ const businessSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    workingHours: {
+        type: Number,
+        required: true
+    },
     isActive: {
         type: Boolean,
         default: true

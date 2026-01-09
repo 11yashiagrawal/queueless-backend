@@ -29,7 +29,8 @@ const queueItemSchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ["APPOINTMENT", "WALKIN"],
+        enum: ["APPOINTMENT", "WALKIN", "INTERNAL_BLOCK"],
+        default: "APPOINTMENT",
         required: true
     },
     status: {
@@ -47,7 +48,7 @@ const queueItemSchema = new mongoose.Schema({
     },
     actualEndTime: {
         type: Date,
-    }
+    },
 }, {
     timestamps: true
 })

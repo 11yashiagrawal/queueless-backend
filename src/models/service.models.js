@@ -22,12 +22,22 @@ const serviceSchema = new mongoose.Schema({
     bufferMinutes: {
         type: Number
     },
+    availableHours: {
+        type: Number,
+        required: true
+    },
     images: {
         type: [String]
     },
     isActive: {
         type: Boolean,
         default: true
+    },
+    confirmationMode: {
+        type: String,
+        enum: ["AUTO", "MANUAL"],
+        default: "AUTO",
+        required: true
     }
 }, 
 {

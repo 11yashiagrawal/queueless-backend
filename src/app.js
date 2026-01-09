@@ -25,3 +25,15 @@ app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public"));
 
 app.use(cookieParser());
+
+BigInt.prototype.toJSON = function() {
+  return this.toString();
+};
+
+import AuthRouter from "./routes/auth.routes.js";
+app.use("/api/v1/auth", AuthRouter);
+
+// import UserRouter from "./routes/user.routes.js";
+// app.use("/api/v1/users", UserRouter);
+
+export {app}
