@@ -33,7 +33,7 @@ BigInt.prototype.toJSON = function() {
 import AuthRouter from "./routes/auth.routes.js";
 app.use("/api/v1/auth", AuthRouter);
 
-// import UserRouter from "./routes/user.routes.js";
-// app.use("/api/v1/users", UserRouter);
+import UserRouter from "./routes/user.routes.js";
+app.use("/api/v1/users", UserRouter);
 
 export {app}
