@@ -26,6 +26,7 @@ const createBusinessService = async (name, description, address, city, state, co
         return { statusCode: 201, data: business[0], message: "Business created successfully" };
     } catch (error) {
         await session.abortTransaction();
+        await deleteFromCloudinary(uploadedDocuments?.url);
         return { statusCode: 500, message: error.message };
     } finally {
         await session.endSession();
@@ -168,7 +169,7 @@ const deactivateService = async (id, user) => {
         await Service.updateMany({ businessId: id }, { isActive: false }, { session });
         await ServiceQueue.updateMany({ businessId: id, }, { status: "CLOSED" }, { session });
         await QueueItem.updateMany({ businessId: id, status: "WAITING" }, { status: "CANCELLED" }, { session });
-        await Appointment.updateMany({ businessId: id, status: "BOOKED" }, { status: "CANCELLED" }, { session });
+        await Appointment.updateMany({ businessId: id, status: { $in: ["BOOKED", "CONFIRMED"] } }, { status: "CANCELLED" }, { session });
         await business.save({ session });
         await session.commitTransaction();
         return { statusCode: 200, data: business, message: "Business deactivated successfully" };

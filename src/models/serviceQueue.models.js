@@ -13,30 +13,36 @@ const serviceQueueSchema = new mongoose.Schema({
     },
     queueDate: {
         type: Date,
-        required: true
+        required: true,
+        default: new Date()
     },
     lastTokenIssued: {
         type: Number,
-        required: true
+        required: true,
+        default: 0
     },
     currentToken: {
         type: Number,
-        required: true
+        required: true,
+        default: 0
     },
     status: {
         type: String,
         enum: ["ACTIVE", "PAUSED", "CLOSED"],
-        required: true
+        required: true,
+        default: "ACTIVE"
     },
     appointmentQueue: {
         type: [mongoose.Schema.Types.ObjectId],
         ref: "QueueItem",
-        required: true
+        required: true,
+        default: []
     },
     walkInQueue: {
         type: [mongoose.Schema.Types.ObjectId],
         ref: "QueueItem",
-        required: true
+        required: true,
+        default: []
     }
 }, {
     timestamps: true

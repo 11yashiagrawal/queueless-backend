@@ -39,4 +39,7 @@ app.use("/api/v1/users", UserRouter);
 import BusinessRouter from "./routes/business.routes.js";
 app.use("/api/v1/businesses", BusinessRouter);
 
+import ServiceRouter from "./routes/service.routes.js";
+app.use("/api/v1/services", ServiceRouter);
+
 export {app}

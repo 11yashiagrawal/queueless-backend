@@ -53,6 +53,6 @@ const queueItemSchema = new mongoose.Schema({
     timestamps: true
 })
 
-queueItemSchema.index({userId: 1, createdAt: 1})
+queueItemSchema.index({userId: 1, createdAt: 1}, {unique: true})
 
 export const QueueItem = mongoose.model("QueueItem", queueItemSchema);
