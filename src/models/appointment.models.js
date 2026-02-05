@@ -25,7 +25,6 @@ const appointmentSchema = new mongoose.Schema({
     slotStart: {
         type: Date,
         required: true,
-        default: Date.now
     },
     slotEnd: {
         type: Date,

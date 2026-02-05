@@ -5,6 +5,7 @@ import { QueueItem } from "../models/queueItem.models.js";
 import { Appointment } from "../models/appointment.models.js";
 import mongoose from "mongoose";
 import { uploadOnCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
+import { getSlotAvailability, getQueueAvailability } from "../utils/availability.js";
 
 const create = async (businessId, name, description, type, avgDurationMinutes, bufferMinutes, availableHours, chargesPerAppointment, isActive, confirmationMode, imagesLocalPaths, user) => {
 
@@ -307,104 +308,41 @@ const checkAvailability = async (serviceId, date, user) => {
             return { statusCode: 404, message: "Service is not available on this day" };
         }
 
-        const appointmentAvailability = await getSlotAvailability(service, workingDay, date);
-        const queueAvailability = await getQueueAvailability(service, user, date, workingDay);
+        const appointments = await Appointment.find({
+            serviceId: service._id,
+            appointmentDate: {
+                $gte: new Date(`${date}T00:00:00`),
+                $lt: new Date(`${date}T23:59:59`)
+            },
+            status: { $in: ["BOOKED", "CONFIRMED"] }
+        })
+
+        const queue = await ServiceQueue.findOne({
+            serviceId: service._id,
+            queueDate: {
+                $gte: new Date(`${date}T00:00:00`),
+                $lt: new Date(`${date}T23:59:59`)
+            }
+        })
+
+        const existing = await QueueItem.findOne({
+            serviceQueueId: queue._id,
+            userId: user._id,
+            status: { $in: ["WAITING", "IN_PROGRESS"] }
+        });
+
+        const items = await QueueItem.find({
+            serviceQueueId: queue._id,
+            status: { $in: ["WAITING", "IN_PROGRESS"] }
+        })
+
+        const appointmentAvailability = await getSlotAvailability(service, workingDay, date, appointments);
+        const queueAvailability = await getQueueAvailability(service, date, workingDay, queue, existing, items);
         return { statusCode: 200, data: { appointmentAvailability, queueAvailability }, message: "Service availability checked successfully" };
     } catch (error) {
         return { statusCode: 500, message: error.message };
     }
 
-}
-
-const getSlotAvailability = async (service, workingDay, date) => {
-    const slotDuration = service.avgDurationMinutes + service.bufferMinutes;
-    const startTime = new Date(`${date}T${workingDay.opensAt}:00`);
-    const endTime = new Date(`${date}T${workingDay.closesAt}:00`);
-    const slots = [];
-    while (startTime < endTime) {
-        slots.push({
-            startTime: startTime.toISOString(),
-            endTime: new Date(startTime.getTime() + slotDuration * 60 * 1000).toISOString(),
-            available: true
-        });
-        startTime.setMinutes(startTime.getMinutes() + slotDuration);
-    }
-
-    const appointments = await Appointment.find({
-        serviceId: service._id,
-        appointmentDate: {
-            $gte: new Date(`${date}T00:00:00`),
-            $lt: new Date(`${date}T23:59:59`)
-        },
-        status: { $in: ["BOOKED", "CONFIRMED"] }
-    })
-
-    for (const slot of slots) {
-        for (const appointment of appointments) {
-            if ((slot.startTime < appointment.slotEnd && slot.endTime > appointment.slotStart) || (slot.startTime == appointment.slotStart && slot.endTime == appointment.slotEnd)) {
-                slot.available = false;
-                break;
-            }
-        }
-    }
-
-    return slots;
-}
-
-const getQueueAvailability = async (service, user, date, workingDay) => {
-    const queueDate = new Date(date);
-    const queue = await ServiceQueue.findOne({
-        serviceId: service._id,
-        queueDate: {
-            $gte: date,
-            $lt: date
-        }
-    })
-
-    if (!queue) {
-        return { available: true, position: 1, estimatedStartTime: new Date(), message: "Queue is empty now" }
-    }
-
-    if (!queue.status == "ACTIVE") {
-        return { available: false, position: null, estimatedStartTime: null, message: `Queue is ${queue.status.toLowerCase()}` }
-    }
-    let existing;
-    if (user) {
-        existing = await QueueItem.findOne({
-            serviceQueueId: queue._id,
-            userId: user._id,
-            status: { $in: ["WAITING", "IN_PROGRESS"] }
-        });
-    }
-    if (existing) {
-        return { available: false, position: null, estimatedStartTime: existing.estimatedStartTime, message: "You are already in queue" }
-    }
-
-    const items = await QueueItem.find({
-        serviceQueueId: queue._id,
-        status: { $in: ["WAITING", "IN_PROGRESS"] }
-    })
-
-    const inProgress = items.find(item => item.status == "IN_PROGRESS")
-    const ahead = items.filter(item => item.status == "WAITING")
-    const effectiveDuration = service.avgDurationMinutes + service.bufferMinutes;
-    let remainingTime = 0;
-    if (inProgress?.actualStartTime) {
-        const elapsedMinutes =
-            (Date.now() - inProgress.actualStartTime.getTime()) / 60000;
-        remainingTime = Math.max(0, effectiveDuration - elapsedMinutes);
-    }
-    const waitMinutes = remainingTime + ahead.length * effectiveDuration;
-    const estimatedStartTime = new Date(
-        Date.now() + waitMinutes * 60000
-    );
-    const closingTime = new Date(
-        `${date}T${workingDay.closesAt}:00`
-    );
-    if (estimatedStartTime > closingTime) {
-        return { available: false, position: ahead.length + 1, estimatedStartTime: estimatedStartTime, message: "Estimated service time exceeds today's working hours. Please book an appointment for another day" }
-    }
-    return { available: true, position: ahead.length + 1, estimatedStartTime: estimatedStartTime, message: "You can join the queue" }
 }
 
 const getAppointments = async (serviceId, date, status, minTime, maxTime, sortBy, sortOrder, page, limit, user) => {
@@ -448,7 +386,7 @@ const getAppointments = async (serviceId, date, status, minTime, maxTime, sortBy
             total,
             totalPages: Math.ceil(total / (limit || 10))
         }
-        if(!sortBy || !sortOrder) {
+        if (!sortBy || !sortOrder) {
             sortBy = "slotStart";
             sortOrder = "asc";
         }
@@ -496,7 +434,7 @@ const join = async (serviceId, user) => {
             serviceId: service._id,
             queueDate: { $gte: startOfDay, $lte: endOfDay }
         }).session(session);
-    
+
         if (!queue) {
             queue = await ServiceQueue.create([{
                 serviceId: service._id,
@@ -511,7 +449,7 @@ const join = async (serviceId, user) => {
 
             queue = queue[0];
         }
-        
+
         const alreadyInQueue = await QueueItem.findOne({
             serviceQueueId: queue._id,
             userId: user._id,
@@ -532,7 +470,7 @@ const join = async (serviceId, user) => {
             now,
             todayHours
         );
-    
+
         if (!availability.available) {
             await session.abortTransaction();
             return {

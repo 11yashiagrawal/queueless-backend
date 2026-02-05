@@ -42,4 +42,7 @@ app.use("/api/v1/businesses", BusinessRouter);
 import ServiceRouter from "./routes/service.routes.js";
 app.use("/api/v1/services", ServiceRouter);
 
+import AppointmentRouter from "./routes/appointment.routes.js";
+app.use("/api/v1/appointments", AppointmentRouter);
+
 export {app}
